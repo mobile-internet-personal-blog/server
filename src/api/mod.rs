@@ -11,6 +11,6 @@ pub fn api_route(state: AppState) -> Router {
     Router::new()
         .route("/", get(|| async {"hello world!"}))
         .route("/essayinfolist", get(handler_blog_info_list))
-        .route("/essaycontent", get(handler_essay_content))
+        .route("/queryessaycontent", get(handler_essay_content))
         .with_state(state)
 }
