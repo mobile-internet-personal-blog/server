@@ -62,6 +62,6 @@
 
 - response
 
-```json
+```
 HTML String
 ```
