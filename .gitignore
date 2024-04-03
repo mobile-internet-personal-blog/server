@@ -1,0 +1,15 @@
+.vscode/
+
+/target/
+
+_*
+
+*.bk
+
+run.sh
+dev.sh
+
+config.json
+
+.env
+
