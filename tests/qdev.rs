@@ -12,7 +12,7 @@ async fn qdev() -> Result<()> {
     let req_login = hc.do_post(
         "/api/login", 
         json!({
-            "code": "6d30805d5225ba4b7b67",
+            "code": "8fb23d6d8c8dc18ed28b",
             "third_party_provider": "Github"
         })
     );

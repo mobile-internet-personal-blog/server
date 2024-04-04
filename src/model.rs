@@ -3,20 +3,6 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Serialize;
 use crate::{error::{Error, ModelError}, SafeVec, Uuid};
 
-#[derive(Debug, Clone)]
-pub struct CreatedUpdatedAt {
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-}
-
-impl CreatedUpdatedAt {
-    pub fn new(created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
-        Self {
-            created_at,
-            updated_at
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EssayInfo {
@@ -44,22 +30,25 @@ impl EssayInfo {
 }
 
 #[derive(Debug, Clone)]
-pub struct Essay{
+pub struct Essay {
     essayinfo: EssayInfo,
     content: String,
-    created_updated_at: CreatedUpdatedAt,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
-impl Essay{
+impl Essay {
     pub fn new (
         essayinfo: EssayInfo, 
         content: &str, 
-        created_updated_at :CreatedUpdatedAt,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
     ) -> Self {
         Self {
             essayinfo,
             content: content.to_string(),
-            created_updated_at,
+            created_at,
+            updated_at
         }
     }
 }

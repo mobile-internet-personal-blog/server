@@ -1,8 +1,9 @@
 use std::env;
 
-use axum::{extract::{Query, State}, Json};
+use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sqlx::Encode;
 
 use crate::{error::Error, utils::AppState};
 use reqwest::{self, header};
@@ -38,14 +39,14 @@ impl User {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct OAuthToken {
+pub struct OAuthBody {
     pub access_token: String,
     pub token_type: String,
     pub scope: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-enum ThirdPartyProvider {
+#[derive(Debug, Serialize, Deserialize, Encode)]
+pub enum ThirdPartyProvider {
     Github,
 }
 
@@ -70,22 +71,30 @@ impl RequestTokenParams {
     }
 }
 
-pub async fn handler_login(
+pub async fn handler_login (
     State(state) : State<AppState>,
     parmas: Json<LoginParams>,
 ) -> Result<Json<User>, Error> {
     println!("->> {:<12} - handler_login", "HANDLER");
-    // println!("{:?}", &parmas.third_party_provider);
     match parmas.third_party_provider {
         ThirdPartyProvider::Github => {
-            let request_token_params = RequestTokenParams::new(
+            let request_token_params = RequestTokenParams::new (
                 &env::var("GITHUB_CLIENTID").expect("Github client id not found"), 
                 &env::var("GITHUB_CLIENTSECRET").expect("Github client secret not found"),
                 &parmas.code 
             );
             let oauthtoken = request_token(&request_token_params).await?;
-            println!("{:?}", oauthtoken);
             let user = request_user_info(&oauthtoken, ThirdPartyProvider::Github).await?;
+            let res = state.db.query_uid(&user.id, ThirdPartyProvider::Github).await;
+            match res {
+                Ok(uid) => {
+                    state.db.update_user(&uid, &oauthtoken.access_token).await?;
+                }
+                Err(Error::DbError(sqlx::Error::RowNotFound)) => {
+                    state.db.create_user(&user.id, ThirdPartyProvider::Github, &oauthtoken.access_token).await?;
+                }
+                Err(e) => return Err(e),
+            }
             Ok(Json(user))
         }
     }
@@ -93,20 +102,20 @@ pub async fn handler_login(
 
 async fn request_token (
     params: &RequestTokenParams
-) -> Result<OAuthToken, Error> {
+) -> Result<OAuthBody, Error> {
     let res = reqwest::Client::new()
         .post("https://github.com/login/oauth/access_token")
         .form(params)
         .header("accept", "application/json")
         .send()
         .await?;
-    let oauthtoken: OAuthToken = serde_json::from_str(&res.text().await?)?;
+    let oauthtoken: OAuthBody = serde_json::from_str(&res.text().await?)?;
 
     Ok(oauthtoken)
 }
 
 async fn request_user_info (
-    params: &OAuthToken,
+    params: &OAuthBody,
     third_party_provider: ThirdPartyProvider,
 ) -> Result<User, Error> {
     let res = reqwest::Client::new()

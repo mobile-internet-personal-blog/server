@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 
-use crate::{error::Error, model::{CategoryMap, CreatedUpdatedAt, Essay, EssayInfo, EssayList, TagMap}};
+use crate::{api::login_api::ThirdPartyProvider, error::{Error, Result}, model::{CategoryMap, Essay, EssayInfo, EssayList, TagMap}, Uuid};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sqlx::Row;
 use super::connection::Database;
 
+
 impl Database {
+    /// 得到文章列表
     pub async fn query_essaylist (
-        & self,
-    ) -> Result<EssayList, Error> {
+        &self,
+    ) -> Result<EssayList> {
         let tagmap = self.query_tag_map().await?;
         let categorymap = self.query_category_map().await?;
         let mut tag_relations: HashMap<String, Vec<u32>> = HashMap::new();
@@ -91,17 +93,16 @@ SELECT * FROM essay_tag
             }
 
             let essayinfo = EssayInfo::new(eid, title, date, categories, tags, brief);
-            let created_updated_at = CreatedUpdatedAt::new(created_at, updated_at);
-            let essay = Essay::new(essayinfo, &content, created_updated_at);
+            let essay = Essay::new(essayinfo, &content, created_at, updated_at);
             essaylist.create_essay(essay).await.expect("5");
         }
 
         Ok(essaylist)
     }
-
+    /// 得到 Tag Map
     pub async fn query_tag_map(
         & self
-    ) -> Result<TagMap, Error> {
+    ) -> Result<TagMap> {
         let mut tagmap = TagMap::new();
         let tags = sqlx::query(
             r#"
@@ -118,10 +119,10 @@ SELECT * FROM tag_set
         }
         Ok(tagmap)
     }
-
+    /// 得到 Category Map
     async fn query_category_map(
         &self
-    ) -> Result<CategoryMap, Error> {
+    ) -> Result<CategoryMap> {
         let mut categorymap = CategoryMap::new();
         let categories = sqlx::query(
             r#"
@@ -137,5 +138,129 @@ SELECT * FROM category_set
             categorymap.insert_category(row.get("id"), row.get("category_name"))?;
         }
         Ok(categorymap)
+    }
+
+    /// 新增一个用户
+    pub async fn create_user (
+        &self,
+        open_id: &str,
+        third_party_provider: ThirdPartyProvider,
+        access_token: &str
+    ) -> Result<()> {
+        let third_party_provider = match third_party_provider {
+            ThirdPartyProvider::Github => "Github",
+        };
+        sqlx::query(
+            r#"
+INSERT INTO users (open_id, third_party_provider, access_token)
+VALUES (?, ?, ?)
+            "#
+        )
+        .bind(open_id)
+        .bind(third_party_provider)
+        .bind(access_token)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// 更新用户信息
+    pub async fn update_user (
+        &self,
+        uid: &Uuid,
+        access_token: &str
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+UPDATE users 
+SET access_token = ?, updated_at = current_timestamp()
+WHERE uid = ?
+            "#
+        )
+        .bind(access_token)
+        .bind(uid)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// 查询用户的 uid
+    pub async fn query_uid (
+        &self,
+        open_id: &str,
+        third_party_provider: ThirdPartyProvider,
+    ) -> Result<Uuid> {
+        let third_party_provider = match third_party_provider {
+            ThirdPartyProvider::Github => "Github",
+        };
+        let uid: Uuid = sqlx::query_scalar(
+            r#"
+SELECT uid FROM users WHERE open_id = ? AND third_party_provider = ?
+            "#
+        )
+        .bind(open_id)
+        .bind(third_party_provider)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(uid)
+    }
+
+    /// 新增一条评论
+    pub async fn create_remark (
+        &self,
+        eid: &Uuid,
+        uid: &Uuid,
+        content: &str
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+INSERT INTO remarks (eid, uid, content)
+VALUES (?, ?, ?)
+            "#
+        )
+        .bind(eid)
+        .bind(uid)
+        .bind(content)
+        .execute(&self.pool)
+        .await?;
+    
+        Ok(())
+    }
+
+    /// 新增一条留言
+    pub async fn create_message(
+        &self,
+        uid: &Uuid,
+        content: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+INSERT INTO chat_messages (uid, content)
+VALUES (?, ?)
+            "#
+        )
+        .bind(uid)
+        .bind(content)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// 得到评论列表
+    pub async fn query_remark_list (
+        &self,
+        eid: &Uuid
+    ) -> Result<()> {
+        todo!()
+    }
+
+    /// 得到留言列表
+    pub async fn query_message_list (
+        &self
+    ) -> Result<()> {
+        todo!()
     }
 }

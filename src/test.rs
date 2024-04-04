@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::{api::login_api::{OAuthToken, RequestTokenParams}, config::Config};
+use crate::{api::login_api::{OAuthBody, RequestTokenParams}, config::Config};
 
 #[test]
 fn get_basicinfo() {
