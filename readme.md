@@ -139,3 +139,116 @@ POST
     "third_party_provider": "Github"
 }
 ```
+
+**/remarklist**
+
+- type
+
+```
+GET
+```
+
+- parmas
+
+```json
+{
+    "eid": "4d93cdf6-0993-4477-8be3-04e4d5b3ef2e",
+}
+```
+
+- response
+
+```json
+[
+    {
+        "content": "test",
+        "created_at": "2024-05-08T10:33:18.768898375Z",
+        "uid": "9fb3eba6-f2a2-11ee-9da4-525400e6965e"
+    },
+    {
+        "content": "test",
+        "created_at": "2024-05-08T10:34:14.495660517Z",
+        "uid": "9fb3eba6-f2a2-11ee-9da4-525400e6965e"
+    },
+]
+```
+
+**/chatmsglist**
+
+- type
+
+```
+GET
+```
+
+- parmas
+
+```json
+{}
+```
+
+- response
+
+```json
+[
+    {
+        "content": "test",
+        "created_at": "2024-05-08T10:35:39.530262387Z",
+        "uid": "9fb3eba6-f2a2-11ee-9da4-525400e6965e"
+    },
+    {
+        "content": "test",
+        "created_at": "2024-05-08T10:38:46.374391361Z",
+        "uid": "9fb3eba6-f2a2-11ee-9da4-525400e6965e"
+    }
+]
+```
+
+**/createremark**
+
+- type
+
+```
+POST
+```
+
+- parmas
+
+```json
+{
+    "eid": "4d93cdf6-0993-4477-8be3-04e4d5b3ef2e",
+    "open_id" : "97720243",
+    "third_party_provider": "Github",
+    "content" : "test"
+}
+```
+
+- response
+
+```json
+{}
+```
+
+**/createchatmsg**
+
+- type
+
+```
+POST
+```
+
+- parmas
+
+```json
+{
+    "open_id" : "97720243",
+    "third_party_provider": "Github",
+    "content" : "test"
+}
+```
+
+- response
+
+```json
+{}
+```

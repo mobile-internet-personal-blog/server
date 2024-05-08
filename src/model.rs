@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Serialize;
-use crate::{error::{Error, ModelError}, SafeVec, Uuid};
+use crate::{error::{Error, ModelError}, SafeBTreeSet, SafeVec, Uuid};
 
 
 #[derive(Debug, Clone, Serialize)]
@@ -125,5 +125,59 @@ impl CategoryMap {
     }
     pub fn get(&self, id: u32) -> Option<&String> {
         self.categorymap.get(&id)
+    }
+}
+
+#[derive(Debug, Clone ,Serialize, sqlx::FromRow, PartialEq, PartialOrd, Eq)]
+pub struct Message {
+    uid : Uuid,
+    content: String,
+    created_at: DateTime<Utc>
+}
+
+impl Message {
+    pub fn new(uid: &Uuid, content: &str, created_at: DateTime<Utc>) -> Self {
+        Self {
+            uid: uid.clone(),
+            content: String::from(content),
+            created_at,
+        }
+    }
+}
+
+impl Ord for Message {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.created_at.cmp(&other.created_at)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MessageList {
+    msglist: SafeBTreeSet<Message>,
+}
+
+impl MessageList {
+    pub fn new() -> Self {
+        Self {
+            msglist: Arc::default()
+        }
+    }
+    pub async fn create_msg(&self, msg: Message) -> Result<(), Error> {
+        let mut list = self.msglist.lock().unwrap();
+        list.insert(msg);
+        Ok(())
+    }
+
+    pub async fn from_vec(msgs: Vec<Message>) -> Result<Self, Error> {
+        let res = Self::new();
+        for msg in msgs {
+            res.create_msg(msg).await?;
+        }
+        Ok(res)
+    }
+
+    pub async fn get_vec(&self) -> Result<Vec<Message>, Error> {
+        let list = self.msglist.lock().unwrap();
+        Ok(list.iter().cloned().collect())
     }
 }

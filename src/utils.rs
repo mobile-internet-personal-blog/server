@@ -1,12 +1,14 @@
 use std::{collections::HashMap, fs, time::UNIX_EPOCH};
 
-use crate::{config::Config, db::connection::Database, error::Error, model::EssayList, Uuid};
+use crate::{config::Config, db::connection::Database, error::Error, model::{EssayList, MessageList}, Uuid};
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: Database,
     pub essaylist: EssayList,
     pub essaymap: HashMap<Uuid, String>,
+    pub chatmsg: MessageList,
+    pub remarks: HashMap<Uuid, MessageList>,
     pub config: Config,
 }
 
@@ -16,12 +18,18 @@ impl AppState {
         let db = Database::new().await;
         let essaylist = db.query_essaylist().await?;
         let essaymap = essaylist.get_content_map().await?;
+        let chatmsg = db.query_message_list().await?;
+        let remarks = db.query_all_remark_lists().await?;
+        let config = Config::default();
+        
         Ok(
             Self {
-                config: Config::default(),
                 db,
                 essaylist,
+                chatmsg,
                 essaymap,
+                remarks,
+                config,
             }
         )
     }

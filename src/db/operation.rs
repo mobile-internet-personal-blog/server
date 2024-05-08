@@ -1,12 +1,31 @@
 use std::collections::HashMap;
 
-use crate::{api::login_api::ThirdPartyProvider, error::{Error, Result}, model::{CategoryMap, Essay, EssayInfo, EssayList, TagMap}, Uuid};
+use crate::{api::login_api::ThirdPartyProvider, error::{Error, Result}, model::{CategoryMap, Essay, EssayInfo, EssayList, Message, MessageList, TagMap}, Uuid};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sqlx::Row;
 use super::connection::Database;
 
 
 impl Database {
+    /// 得到所有文章的 eid
+    pub async fn query_alleid (
+        &self,
+    ) -> Result<Vec<Uuid>> {
+        let eid_list = sqlx::query(
+            r#"
+SELECT eid FROM essays
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut eids = Vec::new();
+        for eid in eid_list {
+            let eid = eid.get("eid");
+            eids.push(eid);
+        }
+        Ok(eids)
+    }
+
     /// 得到文章列表
     pub async fn query_essaylist (
         &self,
@@ -40,7 +59,7 @@ SELECT * FROM essay_tag
         
         let category_essay = sqlx::query(
             r#"
-            SELECT * FROM essay_category
+SELECT * FROM essay_category
             "#
         )
         .fetch_all(&self.pool)
@@ -61,7 +80,7 @@ SELECT * FROM essay_tag
     
     let essays = sqlx::query(
         r#"
-        SELECT * FROM essays   
+SELECT * FROM essays
             "#
         )
         .fetch_all(&self.pool)
@@ -99,6 +118,7 @@ SELECT * FROM essay_tag
 
         Ok(essaylist)
     }
+
     /// 得到 Tag Map
     pub async fn query_tag_map(
         & self
@@ -119,6 +139,7 @@ SELECT * FROM tag_set
         }
         Ok(tagmap)
     }
+
     /// 得到 Category Map
     async fn query_category_map(
         &self
@@ -189,7 +210,7 @@ WHERE uid = ?
     pub async fn query_uid (
         &self,
         open_id: &str,
-        third_party_provider: ThirdPartyProvider,
+        third_party_provider: &ThirdPartyProvider,
     ) -> Result<Uuid> {
         let third_party_provider = match third_party_provider {
             ThirdPartyProvider::Github => "Github",
@@ -245,7 +266,6 @@ VALUES (?, ?)
         .bind(content)
         .execute(&self.pool)
         .await?;
-
         Ok(())
     }
 
@@ -253,14 +273,44 @@ VALUES (?, ?)
     pub async fn query_remark_list (
         &self,
         eid: &Uuid
-    ) -> Result<()> {
-        todo!()
+    ) -> Result<MessageList> {
+        let msgs: Vec<Message> = sqlx::query_as::<_, Message> (
+            r#"
+SELECT uid, content, created_at from remarks WHERE eid = ?
+            "#
+        )
+        .bind(eid)
+        .fetch_all(&self.pool)
+        .await?;
+        let msgs = MessageList::from_vec(msgs).await?;
+        Ok(msgs)
+    }
+    /// 得到所有文章的评论列表
+    pub async fn query_all_remark_lists (
+        &self,
+    ) -> Result<HashMap<Uuid, MessageList>> {
+        let mut remark_lists = HashMap::new();
+        for eid in self.query_alleid().await? {
+            remark_lists.insert(eid.clone(), self.query_remark_list(&eid).await?);
+        }
+        Ok(remark_lists)
     }
 
     /// 得到留言列表
     pub async fn query_message_list (
         &self
-    ) -> Result<()> {
-        todo!()
+    ) -> Result<MessageList> {
+        let msgs: Vec<Message> = sqlx::query_as::<_, Message> (
+            r#"
+SELECT uid, content, created_at from chat_messages
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let msgs = MessageList::from_vec(msgs).await?;
+        Ok(msgs)
     }
+
+    
 }
+

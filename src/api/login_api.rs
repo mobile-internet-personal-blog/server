@@ -85,7 +85,7 @@ pub async fn handler_login (
             );
             let oauthtoken = request_token(&request_token_params).await?;
             let user = request_user_info(&oauthtoken, ThirdPartyProvider::Github).await?;
-            let res = state.db.query_uid(&user.id, ThirdPartyProvider::Github).await;
+            let res = state.db.query_uid(&user.id, &ThirdPartyProvider::Github).await;
             match res {
                 Ok(uid) => {
                     state.db.update_user(&uid, &oauthtoken.access_token).await?;
