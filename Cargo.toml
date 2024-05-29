@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "rusite"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,5 +12,15 @@ pulldown-cmark = "0.10.0"
 tokio = { version = "1.35.1", features = ["macros", "rt-multi-thread"] }
 tower-http = { version = "0.5.1", features = ["fs", "cors"] }
 tower-cookies = "0.10.0"
-sqlx = { version = "0.7", features = [ "runtime-tokio", "mysql" ] }
+sqlx = { version = "0.7", features = ["runtime-tokio", "mysql", "uuid", "chrono"] }
 dotenv = "0.15.0"
+log = "0.4.21"
+env_logger = "0.11.3"
+chrono = { version = "0.4.37", features = ["serde"] }
+uuid = { version = "1.8.0", features = ["v4", "serde"] }
+anyhow = "1.0.81"
+reqwest = "0.12.2"
+
+
+[dev-dependencies]
+httpc-test = "0.1.9"
