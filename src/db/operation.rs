@@ -311,6 +311,4 @@ SELECT uid, content, created_at from chat_messages
         Ok(msgs)
     }
 
-    
 }
-
